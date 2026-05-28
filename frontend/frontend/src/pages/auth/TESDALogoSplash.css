@@ -1,0 +1,315 @@
+/* TESDA Logo Splash Screen Animations */
+
+.tesda-splash-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1d2d 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.tesda-splash-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* Background circular animations */
+.splash-background {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 26, 128, 0.2);
+}
+
+.circle-1 {
+  width: clamp(150px, 50vw, 300px);
+  height: clamp(150px, 50vw, 300px);
+  animation: pulse-circle-1 4s ease-in-out infinite;
+}
+
+.circle-2 {
+  width: clamp(200px, 70vw, 450px);
+  height: clamp(200px, 70vw, 450px);
+  animation: pulse-circle-2 5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.circle-3 {
+  width: clamp(250px, 90vw, 600px);
+  height: clamp(250px, 90vw, 600px);
+  animation: pulse-circle-3 6s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes pulse-circle-1 {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-circle-2 {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.4;
+  }
+}
+
+@keyframes pulse-circle-3 {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+}
+
+/* Logo wrapper */
+.logo-wrapper {
+  animation: logo-form 2.3s ease-out forwards;
+  margin-bottom: clamp(15px, 4vh, 40px);
+  opacity: 0;
+  transform: scale(0.6) rotate(-15deg);
+}
+
+@keyframes logo-form {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-25deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.05) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* keep subtle floating after formation */
+.tesda-logo {
+  animation: float 12s ease-in-out infinite 2.5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  25% {
+    transform: translateY(-6px) scale(1.01);
+  }
+  50% {
+    transform: translateY(-12px) scale(1.02);
+  }
+  75% {
+    transform: translateY(-6px) scale(1.01);
+  }
+}
+
+/* TESDA Logo SVG */
+.tesda-logo {
+  width: clamp(120px, 35vw, 200px);
+  height: clamp(120px, 35vw, 200px);
+  filter: drop-shadow(0 0 20px rgba(0, 26, 128, 0.4));
+}
+
+/* Gear rotation animation */
+.outer-gear {
+  animation: rotate-gear 10s linear infinite, draw-gear 2.3s ease-out forwards;
+  transform-origin: 110px 110px;
+  opacity: 0;
+}
+
+@keyframes rotate-gear {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes draw-gear {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Gear tooth pulse */
+.gear-tooth {
+  animation: gear-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gear-pulse {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Inner shapes animations */
+.inner-shapes {
+  opacity: 0;
+  transform: scale(0.7) translateY(20px);
+  animation: shapes-form 2.3s ease-out forwards 0.2s;
+  transform-origin: 110px 110px;
+}
+
+.shape-left {
+  opacity: 0;
+  animation: left-shape 2.3s ease-out forwards 0.2s;
+}
+
+.shape-right {
+  opacity: 0;
+  animation: right-shape 2.3s ease-out forwards 0.2s;
+}
+
+@keyframes shapes-form {
+  0% { opacity: 0; transform: scale(0.7) translateY(20px); }
+  70% { opacity: 1; transform: scale(1.05) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes left-shape {
+  0% { transform: translateX(-30px); opacity: 0; }
+  70% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes right-shape {
+  0% { transform: translateX(30px); opacity: 0; }
+  70% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Center circle pulsing */
+.center-circle {
+  animation: center-pulse 2s ease-in-out infinite;
+}
+
+@keyframes center-pulse {
+  0%, 100% {
+    r: 25;
+    opacity: 0.8;
+  }
+  50% {
+    r: 32;
+    opacity: 1;
+  }
+}
+
+/* Text animations */
+.splash-text {
+  text-align: center;
+  color: white;
+  opacity: 0;
+  animation: fade-in 1s ease-in-out forwards;
+  animation-delay: 1.5s;
+}
+
+.splash-text h1 {
+  font-size: clamp(28px, 7vw, 48px);
+  font-weight: 900;
+  margin: 0 0 10px 0;
+  letter-spacing: 3px;
+  text-shadow: 0 4px 15px rgba(0, 26, 128, 0.5);
+}
+
+.splash-text p {
+  font-size: clamp(12px, 3vw, 16px);
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 1px;
+  font-weight: 300;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Progress bar */
+.progress-bar-container {
+  position: absolute;
+  bottom: clamp(20px, 5vh, 40px);
+  width: clamp(150px, 60vw, 200px);
+  height: 4px;
+  background: rgba(0, 26, 128, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #001a80, #0066ff, #001a80);
+  background-size: 200% 100%;
+  animation: progress-fill 5s ease-in-out forwards;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 102, 255, 0.6);
+}
+
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .tesda-splash-container {
+    padding: 10px;
+  }
+
+  .splash-text {
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tesda-splash-container {
+    padding: 10px;
+  }
+
+  .splash-text {
+    padding: 0 20px;
+  }
+}

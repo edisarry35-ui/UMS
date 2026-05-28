@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: caps-backend
+    env: node
+    region: oregon
+    plan: starter
+    branch: main
+    root: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGO_URI
+      - key: JWT_SECRET
+      - key: FRONTEND_URL
+      - key: NODE_ENV

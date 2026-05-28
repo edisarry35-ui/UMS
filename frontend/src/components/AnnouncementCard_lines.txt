@@ -1,0 +1,586 @@
+   1: import React, { useMemo, useState } from "react";
+   2: import { formatDate } from "../utils/helpers";
+   3: 
+   4: export default function AnnouncementCard({ announcement, reaction, currentUserId, currentUserRole, currentUsername, onToggleLike, onAddComment, onAddReply, onEditComment, onDeleteComment, onEditReply, onDeleteReply, onEditAnnouncement, onDeleteAnnouncement, onPublishAnnouncement }) {
+   5:   const [showComments, setShowComments] = useState(false);
+   6:   const [commentText, setCommentText] = useState("");
+   7:   const [commentError, setCommentError] = useState(null);
+   8:   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+   9:   const [replyOpenByComment, setReplyOpenByComment] = useState({});
+  10:   const [replyTextByComment, setReplyTextByComment] = useState({});
+  11:   const [replyErrorByComment, setReplyErrorByComment] = useState({});
+  12:   const [isSubmittingReplyByComment, setIsSubmittingReplyByComment] = useState({});
+  13:   const [commentActionOpen, setCommentActionOpen] = useState({});
+  14:   const [replyActionOpen, setReplyActionOpen] = useState({});
+  15:   const [editingCommentById, setEditingCommentById] = useState({});
+  16:   const [editingCommentTextById, setEditingCommentTextById] = useState({});
+  17:   const [editingReplyById, setEditingReplyById] = useState({});
+  18:   const [editingReplyTextById, setEditingReplyTextById] = useState({});
+  19:   const [editErrorById, setEditErrorById] = useState({});
+  20:   const [announcementActionOpen, setAnnouncementActionOpen] = useState(false);
+  21:   const [editingAnnouncement, setEditingAnnouncement] = useState(false);
+  22:   const [editingTitle, setEditingTitle] = useState("");
+  23:   const [editingContent, setEditingContent] = useState("");
+  24:   const [editAnnouncementError, setEditAnnouncementError] = useState(null);
+  25:   const [showFullContent, setShowFullContent] = useState(false);
+  26: 
+  27:   const canEdit = currentUserRole === 'admin' || announcement.author === currentUsername;
+  28: 
+  29:   const safeReaction = reaction || { likes: [], comments: [] };
+  30:   const likeCount = safeReaction.likes.length;
+  31:   const commentCount = safeReaction.comments.length;
+  32:   const isLiked = useMemo(() => {
+  33:     return safeReaction.likes.some((like) => String(like.userId) === String(currentUserId));
+  34:   }, [safeReaction, currentUserId]);
+  35:   const isApproved = announcement.status === "approved";
+  36:   const isDraft = announcement.status === "draft";
+  37: 
+  38:   const getRelativeTime = (dateValue) => {
+  39:     const then = new Date(dateValue);
+  40:     const now = new Date();
+  41:     const diff = now - then;
+  42:     if (!dateValue || Number.isNaN(diff) || diff < 0) return "";
+  43:     const seconds = Math.floor(diff / 1000);
+  44:     const minutes = Math.floor(seconds / 60);
+  45:     const hours = Math.floor(minutes / 60);
+  46:     const days = Math.floor(hours / 24);
+  47:     const months = Math.floor(days / 30);
+  48:     const years = Math.floor(days / 365);
+  49:     if (seconds < 60) return `${seconds}s`;
+  50:     if (minutes < 60) return `${minutes}m`;
+  51:     if (hours < 24) return `${hours}h`;
+  52:     if (days < 30) return `${days}d`;
+  53:     if (months < 12) return `${months}mo`;
+  54:     return `${years}y`;
+  55:   };
+  56: 
+  57:   const relativeTime = getRelativeTime(announcement.createdAt);
+  58: 
+  59:   const CONTENT_PREVIEW_LENGTH = 250;
+  60:   const isLongContent = String(announcement.content || "").length > CONTENT_PREVIEW_LENGTH;
+  61:   const previewContent = String(announcement.content || "").slice(0, CONTENT_PREVIEW_LENGTH).trim();
+  62:   const displayContent = editingAnnouncement
+  63:     ? announcement.content
+  64:     : showFullContent || !isLongContent
+  65:     ? announcement.content
+  66:     : `${previewContent}...`;
+  67: 
+  68:   const handleCommentSubmit = async (event) => {
+  69:     event.preventDefault();
+  70:     if (!commentText.trim()) {
+  71:       setCommentError("Please enter a comment.");
+  72:       return;
+  73:     }
+  74: 
+  75:     setCommentError(null);
+  76:     setIsSubmittingComment(true);
+  77: 
+  78:     try {
+  79:       await onAddComment(announcement._id, commentText.trim());
+  80:       setCommentText("");
+  81:       setShowComments(true);
+  82:     } catch (err) {
+  83:       setCommentError(err?.message || "Failed to post comment.");
+  84:     } finally {
+  85:       setIsSubmittingComment(false);
+  86:     }
+  87:   };
+  88: 
+  89:   const handleReplySubmit = async (event, commentId) => {
+  90:     event.preventDefault();
+  91:     const replyText = String(replyTextByComment[commentId] || "").trim();
+  92:     if (!replyText) {
+  93:       setReplyErrorByComment((prev) => ({ ...prev, [commentId]: "Please enter a reply." }));
+  94:       return;
+  95:     }
+  96: 
+  97:     setReplyErrorByComment((prev) => ({ ...prev, [commentId]: null }));
+  98:     setIsSubmittingReplyByComment((prev) => ({ ...prev, [commentId]: true }));
+  99: 
+ 100:     try {
+ 101:       await onAddReply(announcement._id, commentId, replyText);
+ 102:       setReplyTextByComment((prev) => ({ ...prev, [commentId]: "" }));
+ 103:       setReplyOpenByComment((prev) => ({ ...prev, [commentId]: true }));
+ 104:       setShowComments(true);
+ 105:     } catch (err) {
+ 106:       setReplyErrorByComment((prev) => ({ ...prev, [commentId]: err?.message || "Failed to post reply." }));
+ 107:     } finally {
+ 108:       setIsSubmittingReplyByComment((prev) => ({ ...prev, [commentId]: false }));
+ 109:     }
+ 110:   };
+ 111: 
+ 112:   const toggleCommentActions = (commentId) => {
+ 113:     setCommentActionOpen((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+ 114:   };
+ 115: 
+ 116:   const toggleReplyActions = (replyId) => {
+ 117:     setReplyActionOpen((prev) => ({ ...prev, [replyId]: !prev[replyId] }));
+ 118:   };
+ 119: 
+ 120:   const startEditingComment = (commentId, text) => {
+ 121:     setEditingCommentById((prev) => ({ ...prev, [commentId]: true }));
+ 122:     setEditingCommentTextById((prev) => ({ ...prev, [commentId]: text }));
+ 123:     setCommentActionOpen((prev) => ({ ...prev, [commentId]: false }));
+ 124:   };
+ 125: 
+ 126:   const cancelEditingComment = (commentId) => {
+ 127:     setEditingCommentById((prev) => ({ ...prev, [commentId]: false }));
+ 128:     setEditErrorById((prev) => ({ ...prev, [commentId]: null }));
+ 129:   };
+ 130: 
+ 131:   const submitEditComment = async (commentId) => {
+ 132:     const text = String(editingCommentTextById[commentId] || "").trim();
+ 133:     if (!text) {
+ 134:       setEditErrorById((prev) => ({ ...prev, [commentId]: "Comment cannot be empty." }));
+ 135:       return;
+ 136:     }
+ 137: 
+ 138:     try {
+ 139:       await onEditComment(announcement._id, commentId, text);
+ 140:       setEditingCommentById((prev) => ({ ...prev, [commentId]: false }));
+ 141:       setEditErrorById((prev) => ({ ...prev, [commentId]: null }));
+ 142:     } catch (err) {
+ 143:       setEditErrorById((prev) => ({ ...prev, [commentId]: err?.message || "Failed to edit comment." }));
+ 144:     }
+ 145:   };
+ 146: 
+ 147:   const startEditingReply = (replyId, text) => {
+ 148:     setEditingReplyById((prev) => ({ ...prev, [replyId]: true }));
+ 149:     setEditingReplyTextById((prev) => ({ ...prev, [replyId]: text }));
+ 150:     setReplyActionOpen((prev) => ({ ...prev, [replyId]: false }));
+ 151:   };
+ 152: 
+ 153:   const cancelEditingReply = (replyId) => {
+ 154:     setEditingReplyById((prev) => ({ ...prev, [replyId]: false }));
+ 155:     setEditErrorById((prev) => ({ ...prev, [replyId]: null }));
+ 156:   };
+ 157: 
+ 158:   const submitEditReply = async (commentId, replyId) => {
+ 159:     const text = String(editingReplyTextById[replyId] || "").trim();
+ 160:     if (!text) {
+ 161:       setEditErrorById((prev) => ({ ...prev, [replyId]: "Reply cannot be empty." }));
+ 162:       return;
+ 163:     }
+ 164: 
+ 165:     try {
+ 166:       await onEditReply(announcement._id, commentId, replyId, text);
+ 167:       setEditingReplyById((prev) => ({ ...prev, [replyId]: false }));
+ 168:       setEditErrorById((prev) => ({ ...prev, [replyId]: null }));
+ 169:     } catch (err) {
+ 170:       setEditErrorById((prev) => ({ ...prev, [replyId]: err?.message || "Failed to edit reply." }));
+ 171:     }
+ 172:   };
+ 173: 
+ 174:   const handleEditAnnouncement = async () => {
+ 175:     const title = editingTitle.trim();
+ 176:     const content = editingContent.trim();
+ 177:     if (!title || !content) {
+ 178:       setEditAnnouncementError("Title and content are required.");
+ 179:       return;
+ 180:     }
+ 181:     setEditAnnouncementError(null);
+ 182:     try {
+ 183:       await onEditAnnouncement(announcement._id, title, content);
+ 184:       setEditingAnnouncement(false);
+ 185:       setAnnouncementActionOpen(false);
+ 186:     } catch (err) {
+ 187:       setEditAnnouncementError(err?.message || "Failed to edit announcement.");
+ 188:     }
+ 189:   };
+ 190: 
+ 191:   const handleDeleteAnnouncement = async () => {
+ 192:     try {
+ 193:       await onDeleteAnnouncement(announcement._id);
+ 194:       setAnnouncementActionOpen(false);
+ 195:     } catch (err) {
+ 196:       setEditAnnouncementError(err?.message || "Failed to delete announcement.");
+ 197:     }
+ 198:   };
+ 199: 
+ 200:   const handlePublishAnnouncement = async () => {
+ 201:     try {
+ 202:       await onPublishAnnouncement(announcement._id);
+ 203:       setAnnouncementActionOpen(false);
+ 204:     } catch (err) {
+ 205:       setEditAnnouncementError(err?.message || "Failed to publish announcement.");
+ 206:     }
+ 207:   };
+ 208: 
+ 209:   const startEditingAnnouncement = () => {
+ 210:     setEditingTitle(announcement.title);
+ 211:     setEditingContent(announcement.content);
+ 212:     setEditingAnnouncement(true);
+ 213:     setAnnouncementActionOpen(false);
+ 214:   };
+ 215: 
+ 216:   const cancelEditingAnnouncement = () => {
+ 217:     setEditingAnnouncement(false);
+ 218:     setEditAnnouncementError(null);
+ 219:   };
+ 220: 
+ 221:   React.useEffect(() => {
+ 222:     setShowFullContent(false);
+ 223:   }, [announcement._id, announcement.content]);
+ 224: 
+ 225:   return (
+ 226:     <div id={`ann-${announcement._id}`} className="card hover:shadow-card-hover transition-all duration-200 animate-fade-in">
+ 227:       <div className="flex items-start gap-4">
+ 228:         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-lg font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100">
+ 229:           📢
+ 230:         </div>
+ 231:         <div className="flex-1 min-w-0">
+ 232:           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+ 233:             <div className="min-w-0">
+ 234:               <div className="flex items-center gap-3">
+ 235:                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100">
+ 236:                   {String(announcement.author || "U")
+ 237:                     .split(" ")
+ 238:                     .filter(Boolean)
+ 239:                     .map((part) => part[0])
+ 240:                     .join("")
+ 241:                     .slice(0, 2)
+ 242:                     .toUpperCase()}
+ 243:                 </div>
+ 244:                 <div className="min-w-0">
+ 245:                   <div className="flex flex-wrap items-center gap-2">
+ 246:                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{announcement.author || "Unknown"}</span>
+ 247:                     {relativeTime && <span className="text-xs text-slate-400">· {relativeTime}</span>}
+ 248:                   </div>
+ 249:                 </div>
+ 250:               </div>
+ 251:               <div className="mt-3 flex items-center gap-2">
+ 252:                 <h3 className="font-display font-semibold text-slate-900 text-base leading-snug truncate">{announcement.title}</h3>
+ 253:                 {announcement.status === "draft" && (
+ 254:                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+ 255:                     DRAFT
+ 256:                   </span>
+ 257:                 )}
+ 258:               </div>
+ 259:             </div>
+ 260:             <div className="flex items-center gap-2 flex-shrink-0">
+ 261:               {canEdit && (
+ 262:                 <div className="relative">
+ 263:                   <button
+ 264:                     type="button"
+ 265:                     onClick={() => setAnnouncementActionOpen(!announcementActionOpen)}
+ 266:                     className="text-slate-400 hover:text-slate-600 p-1 rounded"
+ 267:                   >
+ 268:                     ⋯
+ 269:                   </button>
+ 270:                   {announcementActionOpen && (
+ 271:                     <div className="absolute right-0 top-6 bg-white border border-slate-200 rounded shadow-lg z-10 min-w-32">
+ 272:                       {announcement.status === "draft" && (
+ 273:                         <button
+ 274:                           type="button"
+ 275:                           onClick={handlePublishAnnouncement}
+ 276:                           className="block w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50"
+ 277:                         >
+ 278:                           Publish
+ 279:                         </button>
+ 280:                       )}
+ 281:                       <button
+ 282:                         type="button"
+ 283:                         onClick={startEditingAnnouncement}
+ 284:                         className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+ 285:                       >
+ 286:                         Edit
+ 287:                       </button>
+ 288:                       <button
+ 289:                         type="button"
+ 290:                         onClick={handleDeleteAnnouncement}
+ 291:                         className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+ 292:                       >
+ 293:                         Delete
+ 294:                       </button>
+ 295:                     </div>
+ 296:                   )}
+ 297:                 </div>
+ 298:               )}
+ 299:             </div>
+ 300:           </div>
+ 301:           {editingAnnouncement ? (
+ 302:             <div className="space-y-3">
+ 303:               <input
+ 304:                 type="text"
+ 305:                 value={editingTitle}
+ 306:                 onChange={(e) => setEditingTitle(e.target.value)}
+ 307:                 className="input w-full"
+ 308:                 placeholder="Announcement title"
+ 309:               />
+ 310:               <textarea
+ 311:                 value={editingContent}
+ 312:                 onChange={(e) => setEditingContent(e.target.value)}
+ 313:                 className="input w-full h-24 resize-none"
+ 314:                 placeholder="Announcement content"
+ 315:               />
+ 316:               <div className="flex items-center gap-2">
+ 317:                 <button type="button" onClick={handleEditAnnouncement} className="btn-primary">Save</button>
+ 318:                 <button type="button" onClick={cancelEditingAnnouncement} className="btn-secondary">Cancel</button>
+ 319:               </div>
+ 320:               {editAnnouncementError && <p className="text-sm text-red-500">{editAnnouncementError}</p>}
+ 321:             </div>
+ 322:           ) : (
+ 323:             <>
+ 324:               <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{displayContent}</p>
+ 325:               {isLongContent && (
+ 326:                 <button
+ 327:                   type="button"
+ 328:                   onClick={() => setShowFullContent((prev) => !prev)}
+ 329:                   className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-500"
+ 330:                 >
+ 331:                   {showFullContent ? "See less" : "See more"}
+ 332:                 </button>
+ 333:               )}
+ 334:             </>
+ 335:           )}
+ 336: 
+ 337:           <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+ 338:             {!isDraft && (
+ 339:               <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+ 340:                 <button
+ 341:                   type="button"
+ 342:                   onClick={() => onToggleLike(announcement._id)}
+ 343:                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 transition ${isLiked ? "border-red-200 bg-red-50 text-red-600" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"}`}
+ 344:                 >
+ 345:                   <span className="text-base">{isLiked ? "❤️" : "🤍"}</span>
+ 346:                   <span>{likeCount}</span>
+ 347:                 </button>
+ 348:                 <button
+ 349:                   type="button"
+ 350:                   onClick={() => setShowComments((state) => !state)}
+ 351:                   className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:border-slate-300 hover:bg-slate-50 transition"
+ 352:                 >
+ 353:                   <span className="text-base">💬</span>
+ 354:                   <span>{commentCount}</span>
+ 355:                 </button>
+ 356:                 {safeReaction.likes.length > 0 && (
+ 357:                   <span className="text-xs text-slate-500">{safeReaction.likes.length} {safeReaction.likes.length === 1 ? "like" : "likes"}</span>
+ 358:                 )}
+ 359:                 {safeReaction.comments.length > 0 && (
+ 360:                   <span className="text-xs text-slate-500">{safeReaction.comments.length} {safeReaction.comments.length === 1 ? "comment" : "comments"}</span>
+ 361:                 )}
+ 362:               </div>
+ 363:             )}
+ 364: 
+ 365:             {!isDraft && showComments && (
+ 366:               <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+ 367:                 <div className="space-y-3">
+ 368:                   {safeReaction.comments.map((comment, idx) => {
+ 369:                     const commentId = comment._id ? String(comment._id) : String(idx);
+ 370:                     const replyText = replyTextByComment[commentId] || "";
+ 371:                     const replyOpen = replyOpenByComment[commentId];
+ 372:                     const replyError = replyErrorByComment[commentId];
+ 373:                     const isReplying = isSubmittingReplyByComment[commentId];
+ 374: 
+ 375:                     return (
+ 376:                       <div key={commentId} className="rounded-2xl bg-white p-3 shadow-sm dark:bg-slate-800">
+ 377:                         <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+ 378:                           <span className="font-semibold text-slate-700 dark:text-slate-200">{comment.username}</span>
+ 379:                           <span>{formatDate(comment.createdAt)}</span>
+ 380:                         </div>
+ 381:                         <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{comment.text}</p>
+ 382: 
+ 383:                         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+ 384:                           <button
+ 385:                             type="button"
+ 386:                             onClick={() => setReplyOpenByComment((prev) => ({ ...prev, [commentId]: !prev[commentId] }))}
+ 387:                             className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
+ 388:                           >
+ 389:                             <span>↩</span>
+ 390:                             <span>{replyOpen ? "Hide" : "Reply"}</span>
+ 391:                           </button>
+ 392: 
+ 393:                           {comment.replies?.length > 0 && (
+ 394:                             <button
+ 395:                               type="button"
+ 396:                               onClick={() => setReplyOpenByComment((prev) => ({ ...prev, [commentId]: !prev[commentId] }))}
+ 397:                               className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
+ 398:                             >
+ 399:                               <span>💬</span>
+ 400:                               <span>{comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}</span>
+ 401:                             </button>
+ 402:                           )}
+ 403: 
+ 404:                           {String(comment.userId) === String(currentUserId) && (
+ 405:                             <div className="relative">
+ 406:                               <button
+ 407:                                 type="button"
+ 408:                                 onClick={() => toggleCommentActions(commentId)}
+ 409:                                 className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+ 410:                               >
+ 411:                                 ⋯
+ 412:                               </button>
+ 413:                               {commentActionOpen[commentId] && (
+ 414:                                 <div className="absolute right-0 z-10 mt-2 w-28 rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+ 415:                                   <button
+ 416:                                     type="button"
+ 417:                                     onClick={() => startEditingComment(commentId, comment.text)}
+ 418:                                     className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 419:                                   >
+ 420:                                     Edit
+ 421:                                   </button>
+ 422:                                   <button
+ 423:                                     type="button"
+ 424:                                     onClick={async () => {
+ 425:                                       if (!window.confirm("Delete this comment? This cannot be undone.")) return;
+ 426:                                       try {
+ 427:                                         await onDeleteComment(announcement._id, commentId);
+ 428:                                       } catch (err) {
+ 429:                                         setCommentError(err?.message || "Failed to delete comment.");
+ 430:                                       }
+ 431:                                     }}
+ 432:                                     className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+ 433:                                   >
+ 434:                                     Delete
+ 435:                                   </button>
+ 436:                                 </div>
+ 437:                               )}
+ 438:                             </div>
+ 439:                           )}
+ 440:                         </div>
+ 441: 
+ 442:                         {editingCommentById[commentId] ? (
+ 443:                           <div className="mt-3 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+ 444:                             <textarea
+ 445:                               value={editingCommentTextById[commentId] || ""}
+ 446:                               onChange={(e) => setEditingCommentTextById((prev) => ({ ...prev, [commentId]: e.target.value }))}
+ 447:                               className="input h-24 w-full resize-none"
+ 448:                             />
+ 449:                             <div className="flex items-center gap-2">
+ 450:                               <button type="button" onClick={() => submitEditComment(commentId)} className="btn-primary">Save</button>
+ 451:                               <button type="button" onClick={() => cancelEditingComment(commentId)} className="btn-secondary">Cancel</button>
+ 452:                             </div>
+ 453:                             {editErrorById[commentId] && <p className="text-sm text-red-500">{editErrorById[commentId]}</p>}
+ 454:                           </div>
+ 455:                         ) : (
+ 456:                           <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{comment.text}</p>
+ 457:                         )}
+ 458: 
+ 459:                         {comment.replies?.length > 0 && replyOpen && (
+ 460:                           <div className="mt-3 space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+ 461:                             {comment.replies.map((reply, replyIdx) => {
+ 462:                               const replyId = reply._id ? String(reply._id) : String(replyIdx);
+ 463:                               return (
+ 464:                                 <div key={`${commentId}-reply-${replyId}`} className="rounded-2xl bg-white p-3 shadow-sm dark:bg-slate-800">
+ 465:                                   <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+ 466:                                     <span className="font-semibold text-slate-700 dark:text-slate-200">{reply.username}</span>
+ 467:                                     <div className="flex items-center gap-2">
+ 468:                                       <span>{formatDate(reply.createdAt)}</span>
+ 469:                                       {String(reply.userId) === String(currentUserId) && (
+ 470:                                         <div className="relative">
+ 471:                                           <button
+ 472:                                             type="button"
+ 473:                                             onClick={() => toggleReplyActions(replyId)}
+ 474:                                             className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+ 475:                                           >
+ 476:                                             ⋯
+ 477:                                           </button>
+ 478:                                           {replyActionOpen[replyId] && (
+ 479:                                             <div className="absolute right-0 z-10 mt-2 w-28 rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+ 480:                                               <button
+ 481:                                                 type="button"
+ 482:                                                 onClick={() => startEditingReply(replyId, reply.text)}
+ 483:                                                 className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+ 484:                                               >
+ 485:                                                 Edit
+ 486:                                               </button>
+ 487:                                               <button
+ 488:                                                 type="button"
+ 489:                                                 onClick={async () => {
+ 490:                                                   if (!window.confirm("Delete this reply? This cannot be undone.")) return;
+ 491:                                                   try {
+ 492:                                                     await onDeleteReply(announcement._id, commentId, replyId);
+ 493:                                                   } catch (err) {
+ 494:                                                     setReplyErrorByComment((prev) => ({ ...prev, [commentId]: err?.message || "Failed to delete reply." }));
+ 495:                                                   }
+ 496:                                                 }}
+ 497:                                                 className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+ 498:                                               >
+ 499:                                                 Delete
+ 500:                                               </button>
+ 501:                                             </div>
+ 502:                                           )}
+ 503:                                         </div>
+ 504:                                       )}
+ 505:                                     </div>
+ 506:                                   </div>
+ 507:                                   {editingReplyById[replyId] ? (
+ 508:                                     <div className="mt-2 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+ 509:                                       <textarea
+ 510:                                         value={editingReplyTextById[replyId] || ""}
+ 511:                                         onChange={(e) => setEditingReplyTextById((prev) => ({ ...prev, [replyId]: e.target.value }))}
+ 512:                                         className="input h-20 w-full resize-none"
+ 513:                                       />
+ 514:                                       <div className="flex items-center gap-2">
+ 515:                                         <button type="button" onClick={() => submitEditReply(commentId, replyId)} className="btn-primary">Save</button>
+ 516:                                         <button type="button" onClick={() => cancelEditingReply(replyId)} className="btn-secondary">Cancel</button>
+ 517:                                       </div>
+ 518:                                       {editErrorById[replyId] && <p className="text-sm text-red-500">{editErrorById[replyId]}</p>}
+ 519:                                     </div>
+ 520:                                   ) : (
+ 521:                                     <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{reply.text}</p>
+ 522:                                   )}
+ 523:                                 </div>
+ 524:                               );
+ 525:                             })}
+ 526:                           </div>
+ 527:                         )}
+ 528: 
+ 529:                         {replyOpen && (
+ 530:                           <form onSubmit={(event) => handleReplySubmit(event, commentId)} className="mt-3 space-y-2">
+ 531:                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Write a reply</label>
+ 532:                             <div className="flex flex-col gap-2 sm:flex-row">
+ 533:                               <input
+ 534:                                 value={replyText}
+ 535:                                 onChange={(e) => setReplyTextByComment((prev) => ({ ...prev, [commentId]: e.target.value }))}
+ 536:                                 placeholder="Write a reply..."
+ 537:                                 className="input flex-1"
+ 538:                                 disabled={isReplying}
+ 539:                               />
+ 540:                               <button
+ 541:                                 type="submit"
+ 542:                                 className="btn-primary self-end whitespace-nowrap"
+ 543:                                 disabled={isReplying}
+ 544:                               >
+ 545:                                 {isReplying ? "Posting..." : "Reply"}
+ 546:                               </button>
+ 547:                             </div>
+ 548:                             {replyError && <p className="text-sm text-red-500">{replyError}</p>}
+ 549:                           </form>
+ 550:                         )}
+ 551:                       </div>
+ 552:                     );
+ 553:                   })}
+ 554:                   {!safeReaction.comments.length && (
+ 555:                     <p className="text-sm text-slate-500">No comments yet. Be the first to reply.</p>
+ 556:                   )}
+ 557:                 </div>
+ 558: 
+ 559:                 <form onSubmit={handleCommentSubmit} className="space-y-2">
+ 560:                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Add a comment</label>
+ 561:                   <div className="flex flex-col gap-2 sm:flex-row">
+ 562:                     <input
+ 563:                       value={commentText}
+ 564:                       onChange={(e) => setCommentText(e.target.value)}
+ 565:                       placeholder="Write a comment..."
+ 566:                       className="input flex-1"
+ 567:                       disabled={isSubmittingComment}
+ 568:                     />
+ 569:                     <button
+ 570:                       type="submit"
+ 571:                       className="btn-primary self-end whitespace-nowrap"
+ 572:                       disabled={isSubmittingComment}
+ 573:                     >
+ 574:                       {isSubmittingComment ? "Posting..." : "Comment"}
+ 575:                     </button>
+ 576:                   </div>
+ 577:                   {commentError && <p className="text-sm text-red-500">{commentError}</p>}
+ 578:                 </form>
+ 579:               </div>
+ 580:             )}
+ 581:           </div>
+ 582:         </div>
+ 583:       </div>
+ 584:     </div>
+ 585:   );
+ 586: }
