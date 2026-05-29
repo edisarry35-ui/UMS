@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-import axios from "../api/axios";
+import axios, { API_BASE_URL } from "../api/axios";
 import { AuthContext } from "../context/AuthContext";
 import { SectionHeader, PageLoader, Alert, Badge } from "../components/ui";
 import { formatDate } from "../utils/helpers";
@@ -309,7 +309,7 @@ export default function PaymentTransactionsPage({ embedded = false }) {
                       <td className="px-4 py-4 whitespace-nowrap">
                         {transaction.receiptImage && (
                           <a
-                            href={`http://localhost:5000/uploads/${transaction.receiptImage}`}
+                            href={`${API_BASE_URL}/uploads/${transaction.receiptImage}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
